@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <h5 class="text-center mb-4">Log Project</h5>
+
+                    <!-- Initialize Data Section -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-database me-2"></i>Initialize Data</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Record Count</label>
+                                <select id="recordCount" class="form-select form-select-sm">
+                                    <option value="1000">1K</option>
+                                    <option value="10000">10K</option>
+                                    <option value="100000">100K</option>
+                                    <option value="1000000">1M</option>
+                                    <option value="10000000">10M</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Content Size</label>
+                                <select id="contentSize" class="form-select form-select-sm">
+                                    <option value="small">Small (10 fields)</option>
+                                    <option value="medium">Medium (50-100 fields)</option>
+                                    <option value="large">Large (300-500 fields)</option>
+                                </select>
+                            </div>
+                            <button id="initBtn" class="btn btn-primary btn-sm w-100">
+                                <i class="fas fa-play me-2"></i>Initialize
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filters Section -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">User ID</label>
+                                <input type="text" id="userId" class="form-control form-control-sm" placeholder="UUID">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Domain</label>
+                                <input type="text" id="domain" class="form-control form-control-sm" placeholder="domain.com">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Created From</label>
+                                <input type="date" id="createdAt" class="form-control form-control-sm">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Created To</label>
+                                <input type="date" id="createdAtTo" class="form-control form-control-sm">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Search Type</label>
+                                <select id="searchType" class="form-select form-select-sm">
+                                    <option value="fulltext">Full Text Search (GIN)</option>
+                                    <option value="partial">Partial Search (ILIKE)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Search Term</label>
+                                <input type="text" id="contentLike" class="form-control form-control-sm" placeholder="search terms">
+                            </div>
+                            <button id="filterBtn" class="btn btn-success btn-sm w-100">
+                                <i class="fas fa-search me-2"></i>Apply Filters
+                            </button>
+                            <button id="clearBtn" class="btn btn-secondary btn-sm w-100 mt-2">
+                                <i class="fas fa-times me-2"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Actions Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-tools me-2"></i>Actions</h6>
+                        </div>
+                        <div class="card-body">
+                            <button id="truncateBtn" class="btn btn-danger btn-sm w-100">
+                                <i class="fas fa-trash me-2"></i>Truncate Database
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Logs</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Messages -->
+                <div id="alertContainer"></div>
+
+                <!-- Statistics -->
+                <div class="row mb-4" id="statsContainer">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary">Total Records</h5>
+                                <h3 id="totalRecords">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-success">Current Page</h5>
+                                <h3 id="currentPage">1</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-info">Page Size</h5>
+                                <h3 id="pageSize">50</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning">Total Pages</h5>
+                                <h3 id="totalPages">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-table me-2"></i>Log Records
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User ID</th>
+                                        <th>Domain</th>
+                                        <th>Action</th>
+                                        <th>Created At</th>
+                                        <th>Content</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center">No data available. Click "Initialize" to generate sample data.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <nav aria-label="Logs pagination" id="paginationContainer">
+                            <!-- Pagination will be dynamically inserted here -->
+                        </nav>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Content Modal -->
+    <div class="modal fade" id="contentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Log Content</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="contentDisplay" class="bg-light p-3 rounded"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>
