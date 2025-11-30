@@ -1,0 +1,110 @@
+2025/11/30 13:38:25 Running benchmark for Dataset: 1000, RecordSize: small
+Dataset   RecordSize   TestCase              Duration
+1000      small        FTS Found             33.253306ms
+1000      small        FTS Not Found         31.203542ms
+1000      small        FTS Short Input       31.400883ms
+1000      small        FTS No Limit          31.201125ms
+1000      small        Partial Found         4.016413ms
+1000      small        Partial Not Found     3.866271ms
+1000      small        Partial Short Input   4.030858ms
+1000      small        Partial No Limit      3.673514ms
+2025/11/30 13:38:25 Running benchmark for Dataset: 1000, RecordSize: medium
+1000   medium   FTS Found             459.421µs
+1000   medium   FTS Not Found         306.917µs
+1000   medium   FTS Short Input       193.188µs
+1000   medium   FTS No Limit          163.192µs
+1000   medium   Partial Found         27.300004ms
+1000   medium   Partial Not Found     27.843226ms
+1000   medium   Partial Short Input   31.135554ms
+1000   medium   Partial No Limit      28.663618ms
+2025/11/30 13:38:26 Running benchmark for Dataset: 1000, RecordSize: large
+1000   large   FTS Found             13.730481733s
+1000   large   FTS Not Found         13.751551874s
+1000   large   FTS Short Input       13.857272691s
+1000   large   FTS No Limit          13.96607695s
+1000   large   Partial Found         2.315911586s
+1000   large   Partial Not Found     2.287104353s
+1000   large   Partial Short Input   2.317133601s
+1000   large   Partial No Limit      2.319283695s
+2025/11/30 13:43:00 Running benchmark for Dataset: 10000, RecordSize: small
+10000   small   FTS Found             2.319264ms
+10000   small   FTS Not Found         2.185411ms
+10000   small   FTS Short Input       1.281641ms
+10000   small   FTS No Limit          2.149182ms
+10000   small   Partial Found         39.634052ms
+10000   small   Partial Not Found     40.260202ms
+10000   small   Partial Short Input   38.233012ms
+10000   small   Partial No Limit      36.285596ms
+2025/11/30 13:43:03 Running benchmark for Dataset: 10000, RecordSize: medium
+10000   medium   FTS Found             983.619µs
+10000   medium   FTS Not Found         722.427µs
+10000   medium   FTS Short Input       658.757µs
+10000   medium   FTS No Limit          745.053µs
+10000   medium   Partial Found         680.999µs
+10000   medium   Partial Not Found     667.989µs
+10000   medium   Partial Short Input   275.998869ms
+10000   medium   Partial No Limit      760.98µs
+2025/11/30 13:43:16 Running benchmark for Dataset: 10000, RecordSize: large
+10000   large   FTS Found             1.399274ms
+10000   large   FTS Not Found         584.897µs
+10000   large   FTS Short Input       277.85µs
+10000   large   FTS No Limit          326.167µs
+10000   large   Partial Found         23.934856185s
+10000   large   Partial Not Found     23.544268477s
+10000   large   Partial Short Input   23.261732829s
+10000   large   Partial No Limit      24.073536311s
+2025/11/30 13:38:25 Running benchmark for Dataset: 1000, RecordSize: small
+Dataset   RecordSize   TestCase              Duration
+1000      small        FTS Found             33.253306ms
+1000      small        FTS Not Found         31.203542ms
+1000      small        FTS Short Input       31.400883ms
+1000      small        FTS No Limit          31.201125ms
+1000      small        Partial Found         4.016413ms
+1000      small        Partial Not Found     3.866271ms
+1000      small        Partial Short Input   4.030858ms
+1000      small        Partial No Limit      3.673514ms
+2025/11/30 13:38:25 Running benchmark for Dataset: 1000, RecordSize: medium
+1000   medium   FTS Found             459.421µs
+1000   medium   FTS Not Found         306.917µs
+1000   medium   FTS Short Input       193.188µs
+1000   medium   FTS No Limit          163.192µs
+1000   medium   Partial Found         27.300004ms
+1000   medium   Partial Not Found     27.843226ms
+1000   medium   Partial Short Input   31.135554ms
+1000   medium   Partial No Limit      28.663618ms
+2025/11/30 13:38:26 Running benchmark for Dataset: 1000, RecordSize: large
+1000   large   FTS Found             13.730481733s
+1000   large   FTS Not Found         13.751551874s
+1000   large   FTS Short Input       13.857272691s
+1000   large   FTS No Limit          13.96607695s
+1000   large   Partial Found         2.315911586s
+1000   large   Partial Not Found     2.287104353s
+1000   large   Partial Short Input   2.317133601s
+1000   large   Partial No Limit      2.319283695s
+2025/11/30 13:43:00 Running benchmark for Dataset: 10000, RecordSize: small
+10000   small   FTS Found             2.319264ms
+10000   small   FTS Not Found         2.185411ms
+10000   small   FTS Short Input       1.281641ms
+10000   small   FTS No Limit          2.149182ms
+10000   small   Partial Found         39.634052ms
+10000   small   Partial Not Found     40.260202ms
+10000   small   Partial Short Input   38.233012ms
+10000   small   Partial No Limit      36.285596ms
+2025/11/30 13:43:03 Running benchmark for Dataset: 10000, RecordSize: medium
+10000   medium   FTS Found             983.619µs
+10000   medium   FTS Not Found         722.427µs
+10000   medium   FTS Short Input       658.757µs
+10000   medium   FTS No Limit          745.053µs
+10000   medium   Partial Found         680.999µs
+10000   medium   Partial Not Found     667.989µs
+10000   medium   Partial Short Input   275.998869ms
+10000   medium   Partial No Limit      760.98µs
+2025/11/30 13:43:16 Running benchmark for Dataset: 10000, RecordSize: large
+10000   large   FTS Found             1.399274ms
+10000   large   FTS Not Found         584.897µs
+10000   large   FTS Short Input       277.85µs
+10000   large   FTS No Limit          326.167µs
+10000   large   Partial Found         23.934856185s
+10000   large   Partial Not Found     23.544268477s
+10000   large   Partial Short Input   23.261732829s
+10000   large   Partial No Limit      24.073536311s

@@ -281,6 +281,59 @@ This will start:
 - [PostgreSQL GIN Indexes](https://www.postgresql.org/docs/current/gin.html)
 - [PostgreSQL Full-Text Search](https://www.postgresql.org/docs/current/textsearch.html)
 
+## 📈 Benchmark Results
+
+| Dataset | Record Size | Test Case | Duration |
+|---------|-------------|-----------|----------|
+| 1000 | Small | FTS Found | 33.25ms |
+| 1000 | Small | FTS Not Found | 31.20ms |
+| 1000 | Small | FTS Short Input | 31.40ms |
+| 1000 | Small | FTS No Limit | 31.20ms |
+| 1000 | Small | Partial Found | 4.02ms |
+| 1000 | Small | Partial Not Found | 3.87ms |
+| 1000 | Small | Partial Short Input | 4.03ms |
+| 1000 | Small | Partial No Limit | 3.67ms |
+| 1000 | Medium | FTS Found | 459.42µs |
+| 1000 | Medium | FTS Not Found | 306.92µs |
+| 1000 | Medium | FTS Short Input | 193.19µs |
+| 1000 | Medium | FTS No Limit | 163.19µs |
+| 1000 | Medium | Partial Found | 27.30ms |
+| 1000 | Medium | Partial Not Found | 27.84ms |
+| 1000 | Medium | Partial Short Input | 31.14ms |
+| 1000 | Medium | Partial No Limit | 28.66ms |
+| 1000 | Large | FTS Found | 13.73s |
+| 1000 | Large | FTS Not Found | 13.75s |
+| 1000 | Large | FTS Short Input | 13.86s |
+| 1000 | Large | FTS No Limit | 13.97s |
+| 1000 | Large | Partial Found | 2.32s |
+| 1000 | Large | Partial Not Found | 2.29s |
+| 1000 | Large | Partial Short Input | 2.32s |
+| 1000 | Large | Partial No Limit | 2.32s |
+| 10000 | Small | FTS Found | 2.32ms |
+| 10000 | Small | FTS Not Found | 2.19ms |
+| 10000 | Small | FTS Short Input | 1.28ms |
+| 10000 | Small | FTS No Limit | 2.15ms |
+| 10000 | Small | Partial Found | 39.63ms |
+| 10000 | Small | Partial Not Found | 40.26ms |
+| 10000 | Small | Partial Short Input | 38.23ms |
+| 10000 | Small | Partial No Limit | 36.29ms |
+| 10000 | Medium | FTS Found | 983.62µs |
+| 10000 | Medium | FTS Not Found | 722.43µs |
+| 10000 | Medium | FTS Short Input | 658.76µs |
+| 10000 | Medium | FTS No Limit | 745.05µs |
+| 10000 | Medium | Partial Found | 681.00µs |
+| 10000 | Medium | Partial Not Found | 667.99µs |
+| 10000 | Medium | Partial Short Input | 276.00ms |
+| 10000 | Medium | Partial No Limit | 760.98µs |
+| 10000 | Large | FTS Found | 1.40ms |
+| 10000 | Large | FTS Not Found | 584.90µs |
+| 10000 | Large | FTS Short Input | 277.85µs |
+| 10000 | Large | FTS No Limit | 326.17µs |
+| 10000 | Large | Partial Found | 23.93s |
+| 10000 | Large | Partial Not Found | 23.54s |
+| 10000 | Large | Partial Short Input | 23.26s |
+| 10000 | Large | Partial No Limit | 24.07s |
+
 ## 🤝 Contributing
 
 This is a performance testing project. Feel free to:
