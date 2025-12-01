@@ -8,6 +8,7 @@ import (
 	"log-project/config"
 	"log-project/database"
 	"log-project/handlers"
+	"log-project/middleware"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -26,22 +27,23 @@ func main() {
 	cfg := config.Load()
 
 	// Initialize database connection for migrations
+	log.Println("Initializing database connection for migrations...")
 	sqlDB, err := database.Initialize(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal("Failed to initialize database:", err)
+		log.Fatal("Failed to initialize database for migrations:", err)
 	}
-
-	// Run migrations with goose
-	if err := database.RunMigrations(sqlDB); err != nil {
-		log.Fatal("Failed to run migrations:", err)
-	}
-	sqlDB.Close()
+	log.Println("Database connection for migrations initialized.")
+	defer sqlDB.Close() // Close the migration database connection when main exits
 
 	// Initialize pgx pool for application use
+	log.Println("Debug: Before pgx pool initialization.")
+	log.Println("Initializing pgx pool...")
 	pool, err := database.InitializePool(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal("Failed to initialize connection pool:", err)
 	}
+	log.Println("pgx pool initialized.")
+	log.Println("Debug: After pgx pool initialization.")
 	defer pool.Close()
 
 	log.Println("Database initialized successfully with pgx pool")
@@ -77,6 +79,9 @@ func main() {
 		api.GET("/logs", h.GetLogs)
 		api.GET("/search/partial", h.SearchLogsPartial)
 		api.DELETE("/truncate", h.TruncateDatabase)
+
+		// Example API with logging middleware
+		api.POST("/example/:id", middleware.RequestLogger(pool), h.ExampleAPI)
 	}
 
 	// Web interface

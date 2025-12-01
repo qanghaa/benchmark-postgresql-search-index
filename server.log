@@ -1,0 +1,29 @@
+2025/12/01 15:53:01 Initializing database connection for migrations...
+2025/12/01 15:53:01 Database connection for migrations initialized.
+2025/12/01 15:53:01 Debug: Before pgx pool initialization.
+2025/12/01 15:53:01 Initializing pgx pool...
+2025/12/01 15:53:01 pgx pool initialized.
+2025/12/01 15:53:01 Debug: After pgx pool initialization.
+2025/12/01 15:53:01 Database initialized successfully with pgx pool
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /static/*filepath         --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (4 handlers)
+[GIN-debug] HEAD   /static/*filepath         --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (4 handlers)
+[GIN-debug] Loaded HTML Templates (2): 
+	- 
+	- index.html
+
+[GIN-debug] POST   /api/initialize           --> log-project/handlers.(*Handler).InitializeData-fm (4 handlers)
+[GIN-debug] GET    /api/logs                 --> log-project/handlers.(*Handler).GetLogs-fm (4 handlers)
+[GIN-debug] GET    /api/search/partial       --> log-project/handlers.(*Handler).SearchLogsPartial-fm (4 handlers)
+[GIN-debug] DELETE /api/truncate             --> log-project/handlers.(*Handler).TruncateDatabase-fm (4 handlers)
+[GIN-debug] POST   /api/example/:id          --> log-project/handlers.(*Handler).ExampleAPI-fm (5 handlers)
+[GIN-debug] GET    /                         --> main.main.func2 (4 handlers)
+[GIN-debug] GET    /swagger/*any             --> github.com/swaggo/gin-swagger.CustomWrapHandler.func1 (4 handlers)
+2025/12/01 15:53:01 Server starting on port 8080
+2025/12/01 15:53:01 Swagger documentation available at http://localhost:8080/swagger/index.html
+[GIN] 2025/12/01 - 15:53:08 | 200 |   20.304125ms |             ::1 | POST     "/api/example/123?type=test"
