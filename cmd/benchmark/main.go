@@ -6,28 +6,32 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
+	"strings"
 	"text/tabwriter"
 	"time"
 
 	"log-project/internal/db"
 	"log-project/models"
-	"log-project/utils"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// Config holds the benchmark configuration
-type Config struct {
-	DatasetSize int
-	RecordSize  string // "Small", "Medium", "Large"
+type BenchmarkCase struct {
+	Name       string
+	SearchType string // "FTS" or "Partial"
+	Term       string
+	Limit      int32 // 0 means "No Limit" (effectively dataset size)
+	Desc       string
 }
 
-// Result holds the benchmark result for a single test case
 type Result struct {
-	TestCase string
-	Duration time.Duration
+	Case      BenchmarkCase
+	Duration  time.Duration
+	RowsFound int
+	Error     error
 }
 
 func main() {
@@ -45,190 +49,164 @@ func main() {
 
 	queries := db.New(conn)
 
-	datasetSizes := []int{1000, 10000}
-	recordSizes := []string{
-		"small",
-		"medium",
-		"large",
+	// 1. Get Dataset Stats
+	count, err := queries.CountLogs(ctx)
+	if err != nil {
+		log.Fatalf("Failed to count logs: %v", err)
 	}
+	log.Printf("Dataset Size: %d", count)
 
-	// Initialize tabwriter for output
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintln(w, "Dataset\tRecordSize\tTestCase\tDuration")
-
-	for _, size := range datasetSizes {
-		for _, recordSize := range recordSizes {
-			cfg := Config{
-				DatasetSize: size,
-				RecordSize:  recordSize,
-			}
-			log.Printf("Running benchmark for Dataset: %d, RecordSize: %s", size, recordSize)
-
-			foundTerm, err := seedData(ctx, queries, cfg)
-			if err != nil {
-				log.Fatalf("Failed to seed data: %v", err)
-			}
-
-			results := runQueries(ctx, queries, cfg, foundTerm)
-			for _, res := range results {
-				fmt.Fprintf(w, "%d\t%s\t%s\t%v\n", size, recordSize, res.TestCase, res.Duration)
-			}
-			w.Flush()
-			time.Sleep(2 * time.Second)
-		}
+	// 2. Discover Terms (Common vs Rare)
+	log.Println("Analyzing data to find Common and Rare terms...")
+	commonTerm, rareTerm, err := discoverTerms(ctx, queries)
+	if err != nil {
+		log.Printf("Warning: Failed to discover terms, using defaults: %v", err)
+		commonTerm = "login"
+		rareTerm = "error"
 	}
-}
+	log.Printf("Terms Discovered:\n - Common (Many matches): '%s'\n - Rare (Few matches): '%s'", commonTerm, rareTerm)
 
-func seedData(ctx context.Context, q *db.Queries, cfg Config) (string, error) {
-	// Truncate table first
-	if err := q.TruncateLogs(ctx); err != nil {
-		return "", fmt.Errorf("failed to truncate logs: %w", err)
-	}
-
-	batchSize := 1000
-	var batch []db.BulkInsertLogsParams
-	var lastContent models.Content
-
-	for i := 0; i < cfg.DatasetSize; i++ {
-		content := utils.GenerateSampleContent(cfg.RecordSize)
-		lastContent = content
-		contentBytes, _ := json.Marshal(content)
-
-		batch = append(batch, db.BulkInsertLogsParams{
-			UserID:    pgtype.UUID{Bytes: uuid.New(), Valid: true},
-			Domain:    "example.com",
-			Action:    "login",
-			Content:   contentBytes,
-			CreatedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
-		})
-
-		if len(batch) >= batchSize {
-			if _, err := q.BulkInsertLogs(ctx, batch); err != nil {
-				return "", fmt.Errorf("failed to bulk insert: %w", err)
-			}
-			batch = nil
-		}
-	}
-
-	if len(batch) > 0 {
-		if _, err := q.BulkInsertLogs(ctx, batch); err != nil {
-			return "", fmt.Errorf("failed to bulk insert: %w", err)
-		}
-	}
-
-	// Return a value from the last content to search for
-	// Prefer description or notes if available, otherwise fallback
-	if val, ok := lastContent["description"].(string); ok && val != "" {
-		return val, nil
-	}
-	if val, ok := lastContent["user_agent"].(string); ok && val != "" {
-		return val, nil
-	}
-
-	return "login", nil
-}
-
-func runQueries(ctx context.Context, q *db.Queries, cfg Config, foundTerm string) []Result {
-	var results []Result
-
-	// Define search terms
+	// 3. Define Test Cases
 	notFoundTerm := uuid.New().String()
 	shortTerm := "lo"
-	runes := []rune(foundTerm)
-	if len(runes) >= 2 {
-		shortTerm = string(runes[:2])
+	if len(commonTerm) >= 2 {
+		shortTerm = commonTerm[:2]
 	}
 
-	// Helper to measure execution
-	measure := func(name string, fn func() error) {
-		start := time.Now()
-		err := fn()
-		duration := time.Since(start)
-		if err != nil {
-			log.Printf("Error in %s: %v", name, err)
+	cases := []BenchmarkCase{
+		// --- FTS Cases ---
+		{Name: "FTS Not Found", SearchType: "FTS", Term: notFoundTerm, Limit: 100, Desc: "Random UUID"},
+		{Name: "FTS Rare (Few)", SearchType: "FTS", Term: rareTerm, Limit: 100, Desc: "Rare term"},
+		{Name: "FTS Common (Many) Limit", SearchType: "FTS", Term: commonTerm, Limit: 100, Desc: "Common term, Limit 100"},
+		{Name: "FTS Common (Many) NoLimit", SearchType: "FTS", Term: commonTerm, Limit: int32(count), Desc: "Common term, Full Scan"},
+		{Name: "FTS Short Input", SearchType: "FTS", Term: shortTerm, Limit: 100, Desc: "1-2 chars"},
+
+		// --- Partial Cases ---
+		{Name: "Partial Not Found", SearchType: "Partial", Term: notFoundTerm, Limit: 100, Desc: "Random UUID"},
+		{Name: "Partial Rare (Few)", SearchType: "Partial", Term: rareTerm, Limit: 100, Desc: "Rare term"},
+		{Name: "Partial Common (Many) Limit", SearchType: "Partial", Term: commonTerm, Limit: 100, Desc: "Common term, Limit 100"},
+		{Name: "Partial Common (Many) NoLimit", SearchType: "Partial", Term: commonTerm, Limit: int32(count), Desc: "Common term, Full Scan"},
+		{Name: "Partial Short Input", SearchType: "Partial", Term: shortTerm, Limit: 100, Desc: "1-2 chars"},
+	}
+
+	// 4. Warm Up
+	log.Println("Warming up...")
+	warmUp(ctx, queries, commonTerm)
+
+	// 5. Run Benchmark
+	log.Println("Running benchmark...")
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	fmt.Fprintln(w, "Type\tCase\tLimit\tDuration\tRows\tDescription")
+
+	for _, c := range cases {
+		res := runCase(ctx, queries, c)
+		if res.Error != nil {
+			log.Printf("Error in %s: %v", c.Name, res.Error)
+			continue
 		}
-		results = append(results, Result{TestCase: name, Duration: duration})
+		limitStr := fmt.Sprintf("%d", c.Limit)
+		if c.Limit == int32(count) {
+			limitStr = "ALL"
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%d\t%s\n", c.SearchType, c.Name, limitStr, res.Duration, res.RowsFound, c.Desc)
+	}
+	w.Flush()
+}
+
+func runCase(ctx context.Context, q *db.Queries, c BenchmarkCase) Result {
+	start := time.Now()
+	var count int
+	var err error
+
+	if c.SearchType == "FTS" {
+		var logs []db.Log
+		logs, err = q.ListLogsWithFilters(ctx, db.ListLogsWithFiltersParams{
+			Limit:         c.Limit,
+			Offset:        0,
+			ContentSearch: pgtype.Text{String: c.Term, Valid: true},
+		})
+		count = len(logs)
+	} else {
+		var logs []db.Log
+		logs, err = q.SearchLogsPartial(ctx, db.SearchLogsPartialParams{
+			Limit:      pgtype.Int4{Int32: c.Limit, Valid: true},
+			Offset:     pgtype.Int4{Int32: 0, Valid: true},
+			SearchTerm: pgtype.Text{String: c.Term, Valid: true},
+		})
+		count = len(logs)
 	}
 
-	// 1. FTS - Found
-	measure("FTS Found", func() error {
-		_, err := q.ListLogsWithFilters(ctx, db.ListLogsWithFiltersParams{
-			Limit:         100,
-			Offset:        0,
-			ContentSearch: pgtype.Text{String: foundTerm, Valid: true},
-		})
-		return err
+	return Result{
+		Case:      c,
+		Duration:  time.Since(start),
+		RowsFound: count,
+		Error:     err,
+	}
+}
+
+func discoverTerms(ctx context.Context, q *db.Queries) (string, string, error) {
+	// Fetch sample logs
+	logs, err := q.ListLogs(ctx, db.ListLogsParams{Limit: 1000, Offset: 0})
+	if err != nil {
+		return "", "", err
+	}
+
+	wordCounts := make(map[string]int)
+	for _, l := range logs {
+		var content models.Content
+		if err := json.Unmarshal(l.Content, &content); err != nil {
+			continue
+		}
+
+		// Extract text from values
+		for _, v := range content {
+			if str, ok := v.(string); ok {
+				// Simple tokenization: split by space, lowercase, trim
+				words := strings.Fields(str)
+				for _, w := range words {
+					w = strings.ToLower(strings.Trim(w, ".,!?-()[]{}\""))
+					if len(w) > 3 { // Ignore short words
+						wordCounts[w]++
+					}
+				}
+			}
+		}
+	}
+
+	if len(wordCounts) == 0 {
+		return "login", "error", nil
+	}
+
+	type kv struct {
+		Key   string
+		Value int
+	}
+	var sorted []kv
+	for k, v := range wordCounts {
+		sorted = append(sorted, kv{k, v})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Value > sorted[j].Value
 	})
 
-	// 2. FTS - Not Found
-	measure("FTS Not Found", func() error {
-		_, err := q.ListLogsWithFilters(ctx, db.ListLogsWithFiltersParams{
-			Limit:         100,
-			Offset:        0,
-			ContentSearch: pgtype.Text{String: notFoundTerm, Valid: true},
-		})
-		return err
-	})
+	common := sorted[0].Key
+	rare := sorted[len(sorted)-1].Key
 
-	// 3. FTS - Short Input
-	measure("FTS Short Input", func() error {
-		_, err := q.ListLogsWithFilters(ctx, db.ListLogsWithFiltersParams{
-			Limit:         100,
-			Offset:        0,
-			ContentSearch: pgtype.Text{String: shortTerm, Valid: true},
-		})
-		return err
-	})
+	// Try to find a rare term that appears at least once but not too many times
+	for i := len(sorted) - 1; i >= 0; i-- {
+		if sorted[i].Value >= 1 && sorted[i].Value < 5 {
+			rare = sorted[i].Key
+			break
+		}
+	}
 
-	// 4. FTS - No Limit (Large Limit)
-	measure("FTS No Limit", func() error {
-		_, err := q.ListLogsWithFilters(ctx, db.ListLogsWithFiltersParams{
-			Limit:         int32(cfg.DatasetSize),
-			Offset:        0,
-			ContentSearch: pgtype.Text{String: foundTerm, Valid: true},
-		})
-		return err
-	})
+	return common, rare, nil
+}
 
-	// 5. Partial - Found
-	measure("Partial Found", func() error {
-		_, err := q.SearchLogsPartial(ctx, db.SearchLogsPartialParams{
-			Limit:      pgtype.Int4{Int32: 100, Valid: true},
-			Offset:     pgtype.Int4{Int32: 0, Valid: true},
-			SearchTerm: pgtype.Text{String: foundTerm, Valid: true},
-		})
-		return err
+func warmUp(ctx context.Context, q *db.Queries, term string) {
+	q.ListLogsWithFilters(ctx, db.ListLogsWithFiltersParams{
+		Limit:         10,
+		Offset:        0,
+		ContentSearch: pgtype.Text{String: term, Valid: true},
 	})
-
-	// 6. Partial - Not Found
-	measure("Partial Not Found", func() error {
-		_, err := q.SearchLogsPartial(ctx, db.SearchLogsPartialParams{
-			Limit:      pgtype.Int4{Int32: 100, Valid: true},
-			Offset:     pgtype.Int4{Int32: 0, Valid: true},
-			SearchTerm: pgtype.Text{String: notFoundTerm, Valid: true},
-		})
-		return err
-	})
-
-	// 7. Partial - Short Input
-	measure("Partial Short Input", func() error {
-		_, err := q.SearchLogsPartial(ctx, db.SearchLogsPartialParams{
-			Limit:      pgtype.Int4{Int32: 100, Valid: true},
-			Offset:     pgtype.Int4{Int32: 0, Valid: true},
-			SearchTerm: pgtype.Text{String: shortTerm, Valid: true},
-		})
-		return err
-	})
-
-	// 8. Partial - No Limit
-	measure("Partial No Limit", func() error {
-		_, err := q.SearchLogsPartial(ctx, db.SearchLogsPartialParams{
-			Limit:      pgtype.Int4{Int32: int32(cfg.DatasetSize), Valid: true},
-			Offset:     pgtype.Int4{Int32: 0, Valid: true},
-			SearchTerm: pgtype.Text{String: foundTerm, Valid: true},
-		})
-		return err
-	})
-
-	return results
 }
