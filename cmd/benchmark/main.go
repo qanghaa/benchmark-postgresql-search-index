@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"log-project/internal/db"
+	"log-project/models"
 	"log-project/utils"
 
 	"github.com/google/uuid"
@@ -45,7 +46,11 @@ func main() {
 	queries := db.New(conn)
 
 	datasetSizes := []int{1000, 10000}
-	recordSizes := []string{"small", "medium", "large"}
+	recordSizes := []string{
+		"small",
+		"medium",
+		"large",
+	}
 
 	// Initialize tabwriter for output
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
@@ -57,33 +62,36 @@ func main() {
 				DatasetSize: size,
 				RecordSize:  recordSize,
 			}
-
 			log.Printf("Running benchmark for Dataset: %d, RecordSize: %s", size, recordSize)
 
-			if err := seedData(ctx, queries, cfg); err != nil {
+			foundTerm, err := seedData(ctx, queries, cfg)
+			if err != nil {
 				log.Fatalf("Failed to seed data: %v", err)
 			}
 
-			results := runQueries(ctx, queries, cfg)
+			results := runQueries(ctx, queries, cfg, foundTerm)
 			for _, res := range results {
 				fmt.Fprintf(w, "%d\t%s\t%s\t%v\n", size, recordSize, res.TestCase, res.Duration)
 			}
 			w.Flush()
+			time.Sleep(2 * time.Second)
 		}
 	}
 }
 
-func seedData(ctx context.Context, q *db.Queries, cfg Config) error {
+func seedData(ctx context.Context, q *db.Queries, cfg Config) (string, error) {
 	// Truncate table first
 	if err := q.TruncateLogs(ctx); err != nil {
-		return fmt.Errorf("failed to truncate logs: %w", err)
+		return "", fmt.Errorf("failed to truncate logs: %w", err)
 	}
 
 	batchSize := 1000
 	var batch []db.BulkInsertLogsParams
+	var lastContent models.Content
 
 	for i := 0; i < cfg.DatasetSize; i++ {
 		content := utils.GenerateSampleContent(cfg.RecordSize)
+		lastContent = content
 		contentBytes, _ := json.Marshal(content)
 
 		batch = append(batch, db.BulkInsertLogsParams{
@@ -96,7 +104,7 @@ func seedData(ctx context.Context, q *db.Queries, cfg Config) error {
 
 		if len(batch) >= batchSize {
 			if _, err := q.BulkInsertLogs(ctx, batch); err != nil {
-				return fmt.Errorf("failed to bulk insert: %w", err)
+				return "", fmt.Errorf("failed to bulk insert: %w", err)
 			}
 			batch = nil
 		}
@@ -104,20 +112,32 @@ func seedData(ctx context.Context, q *db.Queries, cfg Config) error {
 
 	if len(batch) > 0 {
 		if _, err := q.BulkInsertLogs(ctx, batch); err != nil {
-			return fmt.Errorf("failed to bulk insert: %w", err)
+			return "", fmt.Errorf("failed to bulk insert: %w", err)
 		}
 	}
 
-	return nil
+	// Return a value from the last content to search for
+	// Prefer description or notes if available, otherwise fallback
+	if val, ok := lastContent["description"].(string); ok && val != "" {
+		return val, nil
+	}
+	if val, ok := lastContent["user_agent"].(string); ok && val != "" {
+		return val, nil
+	}
+
+	return "login", nil
 }
 
-func runQueries(ctx context.Context, q *db.Queries, cfg Config) []Result {
+func runQueries(ctx context.Context, q *db.Queries, cfg Config, foundTerm string) []Result {
 	var results []Result
 
 	// Define search terms
-	foundTerm := "log message 500"
-	notFoundTerm := "non existent message"
+	notFoundTerm := uuid.New().String()
 	shortTerm := "lo"
+	runes := []rune(foundTerm)
+	if len(runes) >= 2 {
+		shortTerm = string(runes[:2])
+	}
 
 	// Helper to measure execution
 	measure := func(name string, fn func() error) {

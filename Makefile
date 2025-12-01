@@ -6,16 +6,9 @@ help: ## Show this help message
 	@echo 'Available targets:'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-install-tools: ## Install required tools (sqlc, goose)
-	@echo "Installing sqlc..."
-	@go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-	@echo "Installing goose..."
-	@go install github.com/pressly/goose/v3/cmd/goose@latest
-	@echo "Tools installed successfully!"
-
 sqlc: ## Generate sqlc code
 	@echo "Generating sqlc code..."
-	@~/go/bin/sqlc generate
+	@go run github.com/sqlc-dev/sqlc/cmd/sqlc generate
 	@echo "Code generated successfully!"
 
 migrate-up: ## Run database migrations
@@ -24,10 +17,10 @@ migrate-up: ## Run database migrations
 
 migrate-down: ## Rollback last migration
 	@echo "Rolling back last migration..."
-	@~/go/bin/goose -dir database/migrations postgres "${DATABASE_URL}" down
+	@go run github.com/pressly/goose/v3/cmd/goose -dir database/migrations postgres "${DATABASE_URL}" down
 
 migrate-status: ## Check migration status
-	@~/go/bin/goose -dir database/migrations postgres "${DATABASE_URL}" status
+	@go run github.com/pressly/goose/v3/cmd/goose -dir database/migrations postgres "${DATABASE_URL}" status
 
 run: ## Run the application
 	@echo "Starting application..."
@@ -50,16 +43,16 @@ test: ## Run tests
 
 docker-up: ## Start PostgreSQL with Docker Compose
 	@echo "Starting PostgreSQL..."
-	@docker compose up -d
+	@docker-compose up -d postgres
 	@echo "PostgreSQL started!"
 
 docker-down: ## Stop PostgreSQL
 	@echo "Stopping PostgreSQL..."
-	@docker compose down
+	@docker-compose down
 	@echo "PostgreSQL stopped!"
 
 docker-logs: ## View PostgreSQL logs
-	@docker compose logs -f postgres
+	@docker-compose logs -f postgres
 
 deps: ## Download dependencies
 	@echo "Downloading dependencies..."
@@ -72,6 +65,6 @@ dev: docker-up ## Start development environment (PostgreSQL + App)
 	@sleep 3
 	@make run
 
-all: deps install-tools sqlc build ## Install tools, generate code, and build
+all: deps sqlc build ## Install tools, generate code, and build
 
 .DEFAULT_GOAL := help

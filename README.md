@@ -89,8 +89,65 @@ Generate test data with configurable parameters:
 - **Record counts**: 1K, 10K, 100K, 1M, 10M
 - **Content sizes**:
   - **Small**: ~10 fields
+    ```json
+    {
+      "action_type": "view",
+      "device_id": "device_8521",
+      "duration": 456,
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "ip_address": "192.168.1.1",
+      "session_id": "sess_12345",
+      "status": "success",
+      "timestamp": 1700000000,
+      "user_agent": "Mozilla/5.0..."
+    }
+    ```
   - **Medium**: 50-100 fields
+    ```json
+    {
+      "action_type": "login",
+      "bytes_received": 1234,
+      "bytes_sent": 5678,
+      "city": "New York",
+      "country": "US",
+      "currency": "USD",
+      "description": "Sample description...",
+      "device_id": "device_123",
+      "duration": 120,
+      "error_code": "200",
+      "event_id": "...",
+      "ip_address": "192.168.1.1",
+      "language": "en",
+      "latency": 45,
+      "notes": "Some notes...",
+      "plan": "premium",
+      "region": "us-east-1",
+      "session_id": "sess_123",
+      "status": "success",
+      "timestamp": 1700000000,
+      "user_agent": "Mozilla/5.0...",
+      ...
+    }
+    ```
   - **Large**: 300-500 fields (with nested objects and arrays)
+    ```json
+    {
+      "action_type": "purchase",
+      "array_field_0": ["item1", "item2", ...],
+      "array_field_1": [...],
+      "description": "Long description with multi-byte characters...",
+      "field_0": "value_0",
+      "field_1": "value_1",
+      ...
+      "field_499": "value_499",
+      "nested_obj_0": {
+        "nested_field_0": "value",
+        ...
+      },
+      "japanese_field_0": "こんにちは",
+      ...
+    }
+    ```
 
 ### Search & Filter
 

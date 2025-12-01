@@ -1,8 +1,8 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
-    image: postgres:15-alpine
+    image: "postgres:latest"
     environment:
       POSTGRES_DB: logdb
       POSTGRES_USER: loguser
